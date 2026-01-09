@@ -1,0 +1,299 @@
+# 🎙️ Real-Time Speech Transcription Web App (v1)
+
+A **browser-based, real-time speech transcription application** built with **Next.js** that listens to your **microphone**, streams audio continuously, and transcribes speech live using **OpenAI’s streaming / realtime STT**.
+
+This repository is intentionally **v1-scoped, conservative, and production-realistic**, optimized for **low latency**, **correctness**, and **AI-assisted development (Cursor)**.
+
+---
+
+## 🚀 Objective
+
+Build a web app that:
+
+- Captures **microphone audio only**
+- Streams audio **continuously (no file recording)**
+- Produces **live partial + final transcripts**
+- Uses **OpenAI streaming STT**
+- Runs entirely in the browser (no desktop app)
+- Prioritizes **low latency (<700ms)**
+
+---
+
+## 🧭 Explicit v1 Scope
+
+### ✅ Supported
+- Desktop **Chromium-based browsers**:
+  - Chrome
+  - Edge
+  - Brave
+- Single speaker
+- Mic input only
+- Live transcription
+
+### ❌ Not Supported (by design)
+- Safari (desktop & iOS)
+- Mobile browsers
+- System audio
+- Meeting bots / integrations
+- Offline transcription
+- Multi-speaker diarization
+- Local VAD (Voice Activity Detection)
+
+> v1 intentionally trades coverage for **stability and simplicity**.
+
+---
+
+## 🏗️ Architecture Overview
+```
+[ User Clicks Start ]
+↓
+[ AudioContext.resume() ]
+↓
+[ getUserMedia (mic) ]
+↓
+[ AudioWorkletProcessor ]
+↓
+[ Float32 audio frames ]
+↓
+[ PCM16 Encoder ]
+↓
+[ WebSocket → OpenAI STT ]
+↓
+[ Partial / Final Transcripts ]
+↓
+[ React UI ]
+```
+---
+
+Key principles:
+- **No MediaRecorder**
+- **No WAV / blobs**
+- **No timers**
+- **No manual chunking**
+- **Continuous streaming only**
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **Next.js (App Router)**
+- TypeScript
+- React
+
+### Audio
+- Web Audio API
+- `AudioContext`
+- `AudioWorklet`
+
+### Networking
+- Native WebSocket API
+
+### Speech-to-Text
+- **OpenAI Realtime / Streaming STT (locked for v1)**
+
+---
+
+## 📁 Project Structure
+```
+/app
+/page.tsx → Main UI & orchestration
+/api
+/openai-token/route.ts → Issues short-lived OpenAI token
+/public
+/audio-processor.js → AudioWorkletProcessor
+/lib
+audio.ts → Mic + AudioContext + Worklet lifecycle
+encoder.ts → Float32 → PCM16 encoder
+stt.ts → OpenAI WebSocket client
+```
+
+
+> v1 intentionally avoids over-abstraction to keep Cursor reliable.
+
+---
+
+## 🎧 Audio Constraints (Strict)
+
+These **must not be violated**:
+
+- Sample rate: **16,000 Hz**
+- Channels: **Mono**
+- Encoding: **PCM16**
+- Audio source: **Microphone only**
+
+❌ Do NOT use:
+- `MediaRecorder`
+- WAV files
+- Blob-based recording
+- Timers (`setInterval`, `setTimeout`)
+- Buffered audio queues
+
+---
+
+## 🔁 Audio Lifecycle Management
+
+Browser audio requires **explicit user interaction**.
+
+Rules:
+- AudioContext is created **only after clicking “Start”**
+- `audioContext.resume()` must be called explicitly
+- If AudioContext becomes `suspended`:
+  - Stop streaming
+  - Notify user
+  - Require restart
+
+---
+
+## 🌊 Streaming & Backpressure Policy
+
+To maintain low latency:
+
+- **Never buffer audio**
+- **Never queue frames**
+- If WebSocket is slow or congested:
+  - **Drop audio frames**
+  - Do not delay or retry
+
+Rationale:
+- Speech-to-text prefers missing frames over delayed speech
+- Prevents memory growth
+- Keeps transcript aligned with real-time speech
+
+---
+
+## 🧠 Speech-to-Text (OpenAI)
+
+### v1 Decisions
+- **OpenAI is the only STT provider**
+- No multi-provider abstraction
+- No local VAD (OpenAI handles segmentation)
+
+### Data Flow
+- Send: binary PCM16 frames over WebSocket
+- Receive: JSON messages with:
+  - Partial transcripts
+  - Final transcripts
+  - Errors
+
+Token handling:
+- OpenAI API key **never exposed to the browser**
+- Browser receives a **short-lived token** from `/api/openai-token`
+
+---
+
+## 🖥️ UI State Model
+
+Minimal React state:
+
+- `finalTranscript: string`
+- `partialTranscript: string`
+- `isRecording: boolean`
+- `error: string | null`
+
+Rules:
+- Partial transcript **replaces** the last line
+- Final transcript **appends permanently**
+- UI updates throttled (~80–100ms)
+
+---
+
+## ⚠️ Failure Modes & Behavior
+
+| Failure | Behavior |
+|------|---------|
+| Mic permission denied | Stop, show error |
+| AudioContext suspended | Stop streaming |
+| WebSocket closed | Stop transcription |
+| Token expired | Require restart |
+| OpenAI error | Display message |
+
+No auto-retry in v1 — user must restart manually.
+
+---
+
+## 🔐 Security Model
+
+- OpenAI API key stored in `.env.local`
+- Browser never sees long-lived secrets
+- Next.js API route issues **ephemeral STT tokens only**
+
+---
+
+## 🧪 Development Phases (Cursor-Friendly)
+
+### Phase 1 — Audio Validation
+- Mic permissions
+- AudioContext lifecycle
+- Log audio RMS levels
+
+### Phase 2 — Streaming Skeleton
+- WebSocket connection
+- Send dummy audio
+- Verify backpressure handling
+
+### Phase 3 — OpenAI STT Integration
+- Stream PCM audio
+- Display partial transcripts live
+
+### Phase 4 — UX Hardening
+- Start / Stop logic
+- Error handling
+- Cleanup on stop
+
+---
+
+## 🤖 Cursor Usage Guidelines
+
+To avoid AI-induced bugs:
+
+- Implement **one file at a time**
+- Do NOT ask Cursor to build the full app at once
+- Manually review:
+  - AudioWorklet code
+  - PCM encoding logic
+  - WebSocket binary framing
+
+Cursor is powerful, but **audio code needs human review**.
+
+---
+
+## 🧭 Deferred to v2
+
+- Safari support
+- Mobile browsers
+- Local Voice Activity Detection (VAD)
+- Multi-STT provider support
+- Transcript export & persistence
+- Summarization & insights
+
+---
+
+## ✅ Success Criteria
+
+The app is successful when:
+- Transcription appears **while speaking**
+- Latency feels near-instant
+- Partial text updates smoothly
+- Final text is stable and accurate
+- CPU and memory usage remain low
+
+---
+
+## 📌 Status
+
+**v1 — In active development**
+
+Focused on correctness, latency, and architectural clarity.
+
+---
+
+If you’re using this with **Cursor**, start by implementing:
+1. `audio.ts`
+2. `audio-processor.js`
+3. `encoder.ts`
+4. `stt.ts`
+5. `page.tsx`
+
+One file at a time.
+

@@ -1,4 +1,3 @@
-```md
 # 🎙️ Real-Time Speech Transcription Web App (v1)
 
 A **browser-based, real-time speech transcription application** built with **Next.js** that listens to your **microphone**, streams audio continuously, and transcribes speech live using **OpenAI’s streaming / realtime STT**.
@@ -45,7 +44,7 @@ Build a web app that:
 ---
 
 ## 🏗️ Architecture Overview
-```
+
 [ User Clicks Start ]
 ↓
 [ AudioContext.resume() ]
@@ -63,7 +62,7 @@ Build a web app that:
 [ Partial / Final Transcripts ]
 ↓
 [ React UI ]
-```
+
 ---
 
 Key principles:

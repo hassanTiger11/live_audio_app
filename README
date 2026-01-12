@@ -44,7 +44,7 @@ Build a web app that:
 ---
 
 ## 🏗️ Architecture Overview
-```
+
 [ User Clicks Start ]
 ↓
 [ AudioContext.resume() ]
@@ -62,7 +62,7 @@ Build a web app that:
 [ Partial / Final Transcripts ]
 ↓
 [ React UI ]
-```
+
 ---
 
 Key principles:
@@ -296,4 +296,3 @@ If you’re using this with **Cursor**, start by implementing:
 5. `page.tsx`
 
 One file at a time.
-
